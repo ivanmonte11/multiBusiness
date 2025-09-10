@@ -33,7 +33,6 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Comparación simple de contraseña (para desarrollo)
         if (credentials.password !== user.password) {
           return null
         }
@@ -75,6 +74,8 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    signOut: "/login", 
+    error: "/login",
   },
   debug: process.env.NODE_ENV === "development",
 }

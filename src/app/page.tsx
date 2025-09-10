@@ -1,103 +1,194 @@
-import Image from "next/image";
+// src/app/page.tsx
+import Link from "next/link"
+import Navbar from "@/app/components/layout/Navbar"
+import { 
+  RocketLaunchIcon, 
+  ChartBarIcon, 
+  UsersIcon, 
+  ShoppingCartIcon,
+  CubeIcon,
+  ArrowPathIcon,
+  ShieldCheckIcon,
+  CloudIcon
+} from "@heroicons/react/24/outline"
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Navbar */}
+      <Navbar />
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-700 text-white">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Sistema Multirubro
+              <span className="block text-indigo-200">Multitenant</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-indigo-100 max-w-3xl mx-auto">
+              La plataforma todo en uno para gestionar múltiples negocios desde un solo lugar
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/login"
+                className="bg-white text-indigo-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl"
+              >
+                Comenzar Ahora
+              </Link>
+              <Link
+                href="#features"
+                className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-indigo-600 transition-colors"
+              >
+                Ver Demo
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Potencia tu negocio
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Diseñado para emprendedores que manejan múltiples rubros y necesitan una solución unificada
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <div key={index} className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center mb-6">
+                  <feature.icon className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              ¿Cómo funciona?
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">
+              Simple, seguro y escalable para cualquier tipo de negocio
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {steps.map((step, index) => (
+              <div key={index} className="text-center">
+                <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{index + 1}</span>
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            ¿Listo para transformar tu negocio?
+          </h2>
+          <p className="text-xl mb-8 max-w-3xl mx-auto">
+            Únete a cientos de emprendedores que ya están usando nuestro sistema multirubro
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/register"
+              className="bg-white text-indigo-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors"
+            >
+              Crear Cuenta Gratis
+            </Link>
+            <Link
+              href="/login"
+              className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-indigo-600 transition-colors"
+            >
+              Iniciar Sesión
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p>&copy; 2024 Sistema Multirubro. Todos los derechos reservados.</p>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }
+
+const features = [
+  {
+    icon: CubeIcon,
+    title: "Gestión Multi-rubro",
+    description: "Administra diferentes tipos de negocios desde una sola plataforma con configuraciones específicas para cada rubro."
+  },
+  {
+    icon: UsersIcon,
+    title: "Multi-usuario",
+    description: "Acceso simultáneo para tu equipo con permisos granularizados y roles personalizables."
+  },
+  {
+    icon: ChartBarIcon,
+    title: "Reportes en Tiempo Real",
+    description: "Dashboard interactivo con métricas clave y análisis de rendimiento para cada negocio."
+  },
+  {
+    icon: ShoppingCartIcon,
+    title: "Control de Inventario",
+    description: "Gestión avanzada de stock con alertas automáticas y seguimiento de movimientos."
+  },
+  {
+    icon: ShieldCheckIcon,
+    title: "Seguridad Enterprise",
+    description: "Datos encriptados y backups automáticos para garantizar la seguridad de tu información."
+  },
+  {
+    icon: CloudIcon,
+    title: "Acceso desde Cualquier Lugar",
+    description: "Plataforma 100% web responsive que funciona en cualquier dispositivo con internet."
+  }
+]
+
+const steps = [
+  {
+    title: "Crea tu Cuenta",
+    description: "Regístrate en minutos y configura tu perfil de negocio principal."
+  },
+  {
+    title: "Configura tus Rubros",
+    description: "Define los diferentes tipos de negocios que manejas y sus particularidades."
+  },
+  {
+    title: "Comienza a Gestionar",
+    description: "Importa tus datos, invita a tu equipo y comienza a optimizar tus operaciones."
+  }
+]

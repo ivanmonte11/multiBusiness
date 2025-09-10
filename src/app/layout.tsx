@@ -1,13 +1,23 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
-import AuthProvider from "@/providers/SessionProvider"
 
-const inter = Inter({ subsets: ["latin"] })
+// Configuración de las fuentes
+const geistSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: 'swap',
+})
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: "Sistema Multirubro",
-  description: "Sistema multitenant para negocios multirubro",
+  title: "Sistema Multirubro - Plataforma Multitenant para Negocios",
+  description: "Sistema completo para gestionar múltiples negocios y rubros desde una sola plataforma.",
 }
 
 export default function RootLayout({
@@ -16,11 +26,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.className} antialiased`}>
+        {children}
       </body>
     </html>
   )

@@ -3,15 +3,15 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Sidebar from "@/app/components/dashboard/SideBar"
 import Header from "@/app/components/dashboard/Header"
+import AuthProvider from "@/providers/SessionProvider"
 
 export default async function DashboardLayout({
   children,
   params
 }: {
   children: React.ReactNode
-  params: Promise<{ tenant: string }> // ← Ahora es una Promise
+  params: Promise<{ tenant: string }>
 }) {
-  // Esperar los parámetros
   const resolvedParams = await params
   const session = await getServerSession(authOptions)
 
@@ -19,20 +19,21 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  // Verificar que el usuario pertenezca a este tenant
   if (session.user.tenant !== resolvedParams.tenant) {
     redirect("/login")
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar tenant={resolvedParams.tenant} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          {children}
-        </main>
+    <AuthProvider>
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar tenant={resolvedParams.tenant} />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthProvider>
   )
 }
