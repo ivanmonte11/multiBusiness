@@ -1,3 +1,4 @@
+// src/components/layout/Navbar.tsx
 "use client"
 
 import { useState } from "react"
@@ -14,7 +15,7 @@ export default function Navbar() {
   const pathname = usePathname()
 
   // Evita mostrar navbar en páginas de auth
-  if (pathname?.startsWith('/auth')) {
+  if (pathname?.startsWith('/login') || pathname?.startsWith('/register')) {
     return null
   }
 

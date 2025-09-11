@@ -1,7 +1,9 @@
+// src/lib/auth.ts
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
+import { compare } from "bcryptjs" // ← Import añadido
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -33,7 +35,10 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        if (credentials.password !== user.password) {
+        // Comparación con contraseña hasheada ←
+        const isPasswordValid = await compare(credentials.password, user.password)
+        
+        if (!isPasswordValid) {
           return null
         }
 

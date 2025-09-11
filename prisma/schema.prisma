@@ -84,10 +84,16 @@ model Product {
   name        String
   description String?
   price       Decimal
+  cost        Decimal?     // Precio de costo
   quantity    Int
   barCode     String?  @unique
   sku         String?  @unique
   category    String
+  image       String?     // URL de imagen
+  weight      Decimal?    // Peso en kg
+  dimensions  String?     // Dimensiones (20x30x15 cm)
+  isActive    Boolean @default(true)
+  lowStockThreshold Int @default(5) // Alerta de stock bajo
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

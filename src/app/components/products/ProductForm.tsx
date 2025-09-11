@@ -1,29 +1,58 @@
 "use client"
 
 import { useState } from "react"
+import BarcodeGenerator from "./BarcodeGenerator"
+import BarcodeScanner from "./BarcodeScanner"
 
-interface ProductFormProps {
-  onSubmit: (data: any) => void
-  initialData?: any
+interface ProductData {
+  name: string
+  description: string
+  price: number
+  cost: number
+  quantity: number
+  barCode: string
+  sku: string
+  category: string
+  image: string
+  weight: number
+  dimensions: string
+  lowStockThreshold: number
 }
 
-export default function ProductForm({ onSubmit, initialData }: ProductFormProps) {
-  const [formData, setFormData] = useState(initialData || {
+interface ProductFormProps {
+  onSubmit: (data: ProductData) => void
+  onCancel?: () => void
+  initialData?: Partial<ProductData>
+  loading?: boolean
+}
+
+export default function ProductForm({ onSubmit, onCancel, initialData, loading = false }: ProductFormProps) {
+  const [formData, setFormData] = useState<ProductData>({
     name: "",
     description: "",
     price: 0,
+    cost: 0,
     quantity: 0,
     barCode: "",
     sku: "",
-    category: ""
+    category: "",
+    image: "",
+    weight: 0,
+    dimensions: "",
+    lowStockThreshold: 5,
+    ...initialData
   })
+  const [showBarcodeGenerator, setShowBarcodeGenerator] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData((prev: any) => ({
+    setFormData((prev: ProductData) => ({
       ...prev,
-      [name]: name === "price" ? parseFloat(value) || 0 : 
-              name === "quantity" ? parseInt(value) || 0 : value
+      [name]: name === 'price' || name === 'cost' || name === 'weight' ? 
+               parseFloat(value) || 0 : 
+               name === 'quantity' || name === 'lowStockThreshold' ? 
+               parseInt(value) || 0 : value
     }))
   }
 
@@ -32,120 +61,286 @@ export default function ProductForm({ onSubmit, initialData }: ProductFormProps)
     onSubmit(formData)
   }
 
+  const handleBarcodeGenerate = (barcode: string) => {
+    setFormData(prev => ({ ...prev, barCode: barcode }))
+    setShowBarcodeGenerator(false)
+  }
+
+  const handleBarcodeScan = (barcode: string) => {
+    setFormData(prev => ({ ...prev, barCode: barcode }))
+    setShowScanner(false)
+  }
+
+  // Clases CSS consistentes para inputs
+  const inputClassName = "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+  const labelClassName = "block text-sm font-medium text-gray-700 dark:text-gray-300"
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Nombre
-        </label>
-        <input
-          type="text"
-          name="name"
-          id="name"
-          required
-          value={formData.name}
-          onChange={handleChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+    <>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Columna izquierda */}
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className={labelClassName}>
+                Nombre del producto *
+              </label>
+              <input
+                type="text"
+                name="name"
+                id="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className={inputClassName}
+                placeholder="Nombre del producto"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="description" className={labelClassName}>
+                Descripción
+              </label>
+              <textarea
+                name="description"
+                id="description"
+                rows={3}
+                value={formData.description}
+                onChange={handleChange}
+                className={inputClassName}
+                placeholder="Descripción del producto"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="category" className={labelClassName}>
+                Categoría *
+              </label>
+              <input
+                type="text"
+                name="category"
+                id="category"
+                required
+                value={formData.category}
+                onChange={handleChange}
+                className={inputClassName}
+                placeholder="Ej: Electrónicos, Ropa, Comida..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="image" className={labelClassName}>
+                URL de la imagen
+              </label>
+              <input
+                type="url"
+                name="image"
+                id="image"
+                value={formData.image}
+                onChange={handleChange}
+                className={inputClassName}
+                placeholder="https://ejemplo.com/imagen.jpg"
+              />
+            </div>
+          </div>
+
+          {/* Columna derecha */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="price" className={labelClassName}>
+                  Precio de venta *
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  id="price"
+                  step="0.01"
+                  required
+                  min="0"
+                  value={formData.price}
+                  onChange={handleChange}
+                  className={inputClassName}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="cost" className={labelClassName}>
+                  Precio de costo
+                </label>
+                <input
+                  type="number"
+                  name="cost"
+                  id="cost"
+                  step="0.01"
+                  min="0"
+                  value={formData.cost}
+                  onChange={handleChange}
+                  className={inputClassName}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="quantity" className={labelClassName}>
+                  Cantidad en stock *
+                </label>
+                <input
+                  type="number"
+                  name="quantity"
+                  id="quantity"
+                  required
+                  min="0"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  className={inputClassName}
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="lowStockThreshold" className={labelClassName}>
+                  Alerta de stock mínimo
+                </label>
+                <input
+                  type="number"
+                  name="lowStockThreshold"
+                  id="lowStockThreshold"
+                  min="1"
+                  value={formData.lowStockThreshold}
+                  onChange={handleChange}
+                  className={inputClassName}
+                  placeholder="5"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="barCode" className={labelClassName}>
+                Código de barras
+              </label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  name="barCode"
+                  id="barCode"
+                  value={formData.barCode}
+                  onChange={handleChange}
+                  className={inputClassName + " flex-1"}
+                  placeholder="Código de barras"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowBarcodeGenerator(true)}
+                  className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm whitespace-nowrap"
+                >
+                  Generar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm whitespace-nowrap"
+                >
+                  Escanear
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="sku" className={labelClassName}>
+                SKU (Código Interno)
+              </label>
+              <input
+                type="text"
+                name="sku"
+                id="sku"
+                value={formData.sku}
+                onChange={handleChange}
+                className={inputClassName}
+                placeholder="Ej: ROP-CAM-NEG-M"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="weight" className={labelClassName}>
+                  Peso (kg)
+                </label>
+                <input
+                  type="number"
+                  name="weight"
+                  id="weight"
+                  step="0.01"
+                  min="0"
+                  value={formData.weight}
+                  onChange={handleChange}
+                  className={inputClassName}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="dimensions" className={labelClassName}>
+                  Dimensiones
+                </label>
+                <input
+                  type="text"
+                  name="dimensions"
+                  id="dimensions"
+                  value={formData.dimensions}
+                  onChange={handleChange}
+                  className={inputClassName}
+                  placeholder="20x30x15 cm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {loading ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')} Producto
+          </button>
+        </div>
+      </form>
+
+      {showBarcodeGenerator && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+            <BarcodeGenerator 
+              onBarcodeGenerate={handleBarcodeGenerate}
+              initialValue={formData.barCode}
+            />
+            <button
+              onClick={() => setShowBarcodeGenerator(false)}
+              className="mt-4 w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
         />
-      </div>
-
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Descripción
-        </label>
-        <textarea
-          name="description"
-          id="description"
-          value={formData.description}
-          onChange={handleChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-            Precio
-          </label>
-          <input
-            type="number"
-            name="price"
-            id="price"
-            step="0.01"
-            required
-            value={formData.price}
-            onChange={handleChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
-            Cantidad
-          </label>
-          <input
-            type="number"
-            name="quantity"
-            id="quantity"
-            required
-            value={formData.quantity}
-            onChange={handleChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="barCode" className="block text-sm font-medium text-gray-700">
-            Código de Barras
-          </label>
-          <input
-            type="text"
-            name="barCode"
-            id="barCode"
-            value={formData.barCode}
-            onChange={handleChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="sku" className="block text-sm font-medium text-gray-700">
-            SKU
-          </label>
-          <input
-            type="text"
-            name="sku"
-            id="sku"
-            value={formData.sku}
-            onChange={handleChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-          Categoría
-        </label>
-        <input
-          type="text"
-          name="category"
-          id="category"
-          required
-          value={formData.category}
-          onChange={handleChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-        />
-      </div>
-
-      <button
-        type="submit"
-        className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
-      >
-        {initialData ? "Actualizar" : "Crear"} Producto
-      </button>
-    </form>
+      )}
+    </>
   )
 }

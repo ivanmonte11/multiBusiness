@@ -12,6 +12,7 @@ import {
   ArrowLeftOnRectangleIcon
 } from "@heroicons/react/24/outline"
 import { signOut } from "next-auth/react"
+import { QrCodeIcon } from "@heroicons/react/24/outline"
 
 interface SidebarProps {
   tenant: string
@@ -20,6 +21,7 @@ interface SidebarProps {
 const navigation = [
   { name: "Dashboard", href: "/[tenant]", icon: HomeIcon },
   { name: "Productos", href: "/[tenant]/products", icon: CubeIcon },
+  { name: "Escanear", href: "/[tenant]/scan", icon: QrCodeIcon},
   { name: "Ventas", href: "/[tenant]/sales", icon: ShoppingCartIcon },
   { name: "Reportes", href: "/[tenant]/reports", icon: ChartBarIcon },
   { name: "Clientes", href: "/[tenant]/customers", icon: UsersIcon },
