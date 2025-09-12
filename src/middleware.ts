@@ -20,9 +20,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Si está en ruta de auth y ya tiene token → redirigir a dashboard
+  // Si está en ruta de auth y ya tiene token → redirigir al TENANT del usuario
   if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    // ✅ CORRECCIÓN: Redirigir al tenant del usuario en lugar de /dashboard
+    if (token.tenant) {
+      return NextResponse.redirect(new URL(`/${token.tenant}`, request.url))
+    } else {
+      // Fallback si no hay tenant
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
   return NextResponse.next()

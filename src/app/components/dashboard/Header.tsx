@@ -16,7 +16,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [showScanner, setShowScanner] = useState(false)
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const params = useParams()
   const searchRef = useRef<HTMLInputElement>(null)
@@ -44,6 +44,16 @@ export default function Header() {
         }
       }, 500)
     }
+    if (status === "loading") {
+  return (
+    <header className="bg-white shadow-sm border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+        <div className="animate-pulse bg-gray-200 h-8 w-32 rounded"></div>
+        <div className="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
+      </div>
+    </header>
+  )
+}
   }
 
   // Realizar la búsqueda

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // ← Agregar useEffect
 import BarcodeGenerator from "./BarcodeGenerator"
 import BarcodeScanner from "./BarcodeScanner"
 
@@ -17,6 +17,8 @@ interface ProductData {
   weight: number
   dimensions: string
   lowStockThreshold: number
+  createdAt?:string
+  updatedAt?: string
 }
 
 interface ProductFormProps {
@@ -24,9 +26,16 @@ interface ProductFormProps {
   onCancel?: () => void
   initialData?: Partial<ProductData>
   loading?: boolean
+  isEdit?: boolean // ← Nueva prop para modo edición
 }
 
-export default function ProductForm({ onSubmit, onCancel, initialData, loading = false }: ProductFormProps) {
+export default function ProductForm({ 
+  onSubmit, 
+  onCancel, 
+  initialData, 
+  loading = false, 
+  isEdit = false // ← Valor por defecto
+}: ProductFormProps) {
   const [formData, setFormData] = useState<ProductData>({
     name: "",
     description: "",
@@ -45,6 +54,16 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
   const [showBarcodeGenerator, setShowBarcodeGenerator] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
 
+  // Efecto para actualizar el formData cuando initialData cambie
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({
+        ...prev,
+        ...initialData
+      }))
+    }
+  }, [initialData])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev: ProductData) => ({
@@ -58,6 +77,20 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validaciones adicionales para modo edición
+    if (isEdit) {
+      // Puedes agregar validaciones específicas para edición aquí
+      if (!formData.name.trim()) {
+        alert("El nombre del producto es requerido")
+        return
+      }
+      if (formData.price <= 0) {
+        alert("El precio debe ser mayor a 0")
+        return
+      }
+    }
+    
     onSubmit(formData)
   }
 
@@ -77,6 +110,16 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
 
   return (
     <>
+      {/* Header con título dinámico */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {isEdit ? 'Editar Producto' : 'Crear Nuevo Producto'}
+        </h2>
+        <p className="text-gray-600 dark:text-gray-300 mt-1">
+          {isEdit ? 'Modifica los datos del producto' : 'Completa la información del nuevo producto'}
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Columna izquierda */}
@@ -141,6 +184,18 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
                 className={inputClassName}
                 placeholder="https://ejemplo.com/imagen.jpg"
               />
+              {formData.image && (
+                <div className="mt-2">
+                  <img 
+                    src={formData.image} 
+                    alt="Vista previa" 
+                    className="h-20 w-20 object-cover rounded border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -199,6 +254,16 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
                   className={inputClassName}
                   placeholder="0"
                 />
+                {formData.quantity <= formData.lowStockThreshold && formData.quantity > 0 && (
+                  <p className="text-yellow-600 text-sm mt-1">
+                    ⚠️ Stock bajo
+                  </p>
+                )}
+                {formData.quantity === 0 && (
+                  <p className="text-red-600 text-sm mt-1">
+                    ⚠️ Sin stock
+                  </p>
+                )}
               </div>
 
               <div>
@@ -231,22 +296,32 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
                   onChange={handleChange}
                   className={inputClassName + " flex-1"}
                   placeholder="Código de barras"
+                  readOnly={isEdit} // ← Hacer readonly en edición para evitar cambios accidentales
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowBarcodeGenerator(true)}
-                  className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm whitespace-nowrap"
-                >
-                  Generar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowScanner(true)}
-                  className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm whitespace-nowrap"
-                >
-                  Escanear
-                </button>
+                {!isEdit && ( // ← Solo mostrar botones en modo creación
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowBarcodeGenerator(true)}
+                      className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm whitespace-nowrap"
+                    >
+                      Generar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowScanner(true)}
+                      className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm whitespace-nowrap"
+                    >
+                      Escanear
+                    </button>
+                  </>
+                )}
               </div>
+              {isEdit && formData.barCode && (
+                <p className="text-sm text-gray-500 mt-1">
+                  El código de barras no puede ser modificado en edición
+                </p>
+              )}
             </div>
 
             <div>
@@ -300,20 +375,39 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
           </div>
         </div>
 
-        <div className="flex justify-end space-x-4">
+        {/* Información de auditoría en modo edición */}
+        {isEdit && initialData && (
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Información de auditoría
+            </h4>
+            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">
+              <div>
+                <span className="font-medium">Creado:</span>{' '}
+                {initialData.createdAt ? new Date(initialData.createdAt).toLocaleDateString() : 'N/A'}
+              </div>
+              <div>
+                <span className="font-medium">Última actualización:</span>{' '}
+                {initialData.updatedAt ? new Date(initialData.updatedAt).toLocaleDateString() : 'N/A'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="px-6 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')} Producto
+            {loading ? 'Guardando...' : (isEdit ? 'Actualizar Producto' : 'Crear Producto')}
           </button>
         </div>
       </form>
@@ -321,13 +415,16 @@ export default function ProductForm({ onSubmit, onCancel, initialData, loading =
       {showBarcodeGenerator && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              Generar Código de Barras
+            </h3>
             <BarcodeGenerator 
               onBarcodeGenerate={handleBarcodeGenerate}
               initialValue={formData.barCode}
             />
             <button
               onClick={() => setShowBarcodeGenerator(false)}
-              className="mt-4 w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+              className="mt-4 w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
             >
               Cerrar
             </button>

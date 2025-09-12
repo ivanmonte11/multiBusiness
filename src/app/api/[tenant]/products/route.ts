@@ -131,3 +131,124 @@ export async function POST(
     )
   }
 }
+
+// PUT - Actualizar producto
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ tenant: string }> }
+) {
+  const resolvedParams = await params
+  const session = await getServerSession(authOptions)
+  
+  if (!session || session.user.tenant !== resolvedParams.tenant) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: session.user.tenant }
+    })
+
+    if (!tenant) {
+      return NextResponse.json({ error: "Tenant not found" }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const { id, ...updateData } = body
+
+    if (!id) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
+    }
+
+    // Verificar que el producto pertenezca al tenant
+    const existingProduct = await prisma.product.findFirst({
+      where: { id, tenantId: tenant.id }
+    })
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        ...updateData,
+        price: updateData.price ? parseFloat(updateData.price) : undefined,
+        cost: updateData.cost ? parseFloat(updateData.cost) : undefined,
+        quantity: updateData.quantity ? parseInt(updateData.quantity) : undefined,
+        lowStockThreshold: updateData.lowStockThreshold ? parseInt(updateData.lowStockThreshold) : undefined
+      }
+    })
+
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('Error updating product:', error)
+    return NextResponse.json(
+      { error: "Error updating product" },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE - Eliminar producto
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ tenant: string }> }
+) {
+  const resolvedParams = await params
+  const session = await getServerSession(authOptions)
+  
+  if (!session || session.user.tenant !== resolvedParams.tenant) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: session.user.tenant }
+    })
+
+    if (!tenant) {
+      return NextResponse.json({ error: "Tenant not found" }, { status: 404 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
+    }
+
+    // Verificar que el producto pertenezca al tenant
+    const existingProduct = await prisma.product.findFirst({
+      where: { id, tenantId: tenant.id }
+    })
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    
+    
+     await prisma.product.update({
+     where: { id },
+     data: { isActive: false }
+     })
+
+    return NextResponse.json({ message: "Product deleted successfully" })
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    return NextResponse.json(
+      { error: "Error deleting product" },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH - Actualización parcial (opcional)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ tenant: string }> }
+) {
+  // Similar al PUT pero para actualizaciones parciales
+  // Útil para updates específicos como stock
+}

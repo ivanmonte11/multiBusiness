@@ -1,6 +1,8 @@
+// src/app/layout.tsx
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
+import AuthProvider from "@/providers/SessionProvider" 
 
 // Configuración de las fuentes
 const geistSans = Geist({
@@ -28,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className={`${geistSans.className} antialiased`}>
-        {children}
+        <AuthProvider> 
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

@@ -3,7 +3,6 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Sidebar from "@/app/components/dashboard/SideBar"
 import Header from "@/app/components/dashboard/Header"
-import AuthProvider from "@/providers/SessionProvider"
 
 export default async function DashboardLayout({
   children,
@@ -24,16 +23,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <AuthProvider>
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar tenant={resolvedParams.tenant} />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-            {children}
-          </main>
-        </div>
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar tenant={resolvedParams.tenant} />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
-    </AuthProvider>
+    </div>
   )
 }
