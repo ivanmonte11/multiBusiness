@@ -14,10 +14,18 @@ model Tenant {
   slug      String   @unique
   category  String   // Rubro del negocio
   createdAt DateTime @default(now())
+  phone     String?
+  email     String?  
+  address   String? 
+  // DATOS FISCALES BÁSICOS:
+  taxId     String?  // CUIT/CUIL (obligatorio para facturas)
   updatedAt DateTime @updatedAt
 
   users     User[]
   products  Product[]
+  sales     Sale[] 
+  customers Customer[]
+  refunds   Refund[]
   
   @@map("tenants")
 }
@@ -66,6 +74,7 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+   sales         Sale[]
 
   @@map("users")
 }
@@ -99,7 +108,109 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  saleItems   SaleItem[]
+  refundItems RefundItem[]
+
   @@map("products")
 }
 
-// Agregar más modelos después (categorías, ventas, proveedores, etc.)
+model Sale {
+  id          String   @id @default(cuid())
+  saleNumber  String   @unique
+  total       Decimal
+  status      SaleStatus @default(COMPLETED)
+  paymentMethod PaymentMethod
+  transferReference String?      
+  transferBank     String?   
+  paymentNote      String?     
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items       SaleItem[]
+  refunds      Refund[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sales")
+}
+
+model Refund {
+  id           String   @id @default(cuid())
+  refundNumber String   @unique
+  total        Float
+  status       String   @default("COMPLETED") // Simple string para evitar enum
+  createdAt    DateTime @default(now())
+  
+  // Relaciones
+  saleId       String
+  sale         Sale     @relation(fields: [saleId], references: [id])
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  items        RefundItem[]
+  
+  @@map("refunds")
+}
+
+model RefundItem {
+  id        String  @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal
+  subtotal  Decimal
+  
+  // Relaciones
+  refundId  String
+  refund    Refund  @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  
+  @@map("refund_items")
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  unitPrice   Decimal
+  subtotal    Decimal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sale_items")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?  @unique
+  phone       String?
+  address     String?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales       Sale[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("customers")
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+// Agregar más modelos después (categorías, proveedores, etc.)

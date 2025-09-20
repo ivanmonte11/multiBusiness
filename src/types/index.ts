@@ -36,3 +36,37 @@ export interface SessionUser {
   name: string | null
   tenant: string
 }
+export interface Sale {
+  id: string
+  saleNumber: string
+  total: number
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED'
+  paymentMethod: 'CASH' | 'CARD' | 'TRANSFER' | 'OTHER'
+  customerId?: string
+  userId: string
+  tenantId: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface SaleItem {
+  id: string
+  saleId: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  subtotal: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Customer {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  address?: string
+  tenantId: string
+  createdAt: Date
+  updatedAt: Date
+}
