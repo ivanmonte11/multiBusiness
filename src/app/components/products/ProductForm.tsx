@@ -1,42 +1,29 @@
 "use client"
 
-import { useState, useEffect } from "react" // ← Agregar useEffect
+import { useState, useEffect } from "react" 
 import BarcodeGenerator from "./BarcodeGenerator"
 import BarcodeScanner from "./BarcodeScanner"
+import { ProductFormData } from '@/types/product'
 
-interface ProductData {
-  name: string
-  description: string
-  price: number
-  cost: number
-  quantity: number
-  barCode: string
-  sku: string
-  category: string
-  image: string
-  weight: number
-  dimensions: string
-  lowStockThreshold: number
-  createdAt?:string
-  updatedAt?: string
-}
 
 interface ProductFormProps {
-  onSubmit: (data: ProductData) => void
+  onSubmit: (data: ProductFormData) => void
   onCancel?: () => void
-  initialData?: Partial<ProductData>
+   onDelete?: () => void 
+  initialData?: Partial<ProductFormData>
   loading?: boolean
-  isEdit?: boolean // ← Nueva prop para modo edición
+  isEdit?: boolean
 }
 
 export default function ProductForm({ 
   onSubmit, 
   onCancel, 
+   onDelete,
   initialData, 
   loading = false, 
-  isEdit = false // ← Valor por defecto
+  isEdit = false 
 }: ProductFormProps) {
-  const [formData, setFormData] = useState<ProductData>({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     description: "",
     price: 0,
@@ -49,6 +36,7 @@ export default function ProductForm({
     weight: 0,
     dimensions: "",
     lowStockThreshold: 5,
+    isActive: true, 
     ...initialData
   })
   const [showBarcodeGenerator, setShowBarcodeGenerator] = useState(false)
@@ -66,7 +54,7 @@ export default function ProductForm({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData((prev: ProductData) => ({
+    setFormData((prev: ProductFormData) => ({
       ...prev,
       [name]: name === 'price' || name === 'cost' || name === 'weight' ? 
                parseFloat(value) || 0 : 
@@ -80,7 +68,7 @@ export default function ProductForm({
     
     // Validaciones adicionales para modo edición
     if (isEdit) {
-      // Puedes agregar validaciones específicas para edición aquí
+      //  agregar validaciones específicas para edición aquí
       if (!formData.name.trim()) {
         alert("El nombre del producto es requerido")
         return
@@ -296,7 +284,7 @@ export default function ProductForm({
                   onChange={handleChange}
                   className={inputClassName + " flex-1"}
                   placeholder="Código de barras"
-                  readOnly={isEdit} // ← Hacer readonly en edición para evitar cambios accidentales
+                  readOnly={isEdit}
                 />
                 {!isEdit && ( // ← Solo mostrar botones en modo creación
                   <>
@@ -409,6 +397,16 @@ export default function ProductForm({
           >
             {loading ? 'Guardando...' : (isEdit ? 'Actualizar Producto' : 'Crear Producto')}
           </button>
+           {/* Botón eliminar solo en modo edición */}
+        {isEdit && onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+          >
+            Eliminar Producto
+          </button>
+        )}
         </div>
       </form>
 

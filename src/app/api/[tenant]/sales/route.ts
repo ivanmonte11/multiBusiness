@@ -1,14 +1,30 @@
-// src/app/api/[tenant]/sales/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { PaymentMethod } from '@prisma/client' 
+
+// Interfaces para tipado
+interface SaleItem {
+  productId: string
+  quantity: number
+  unitPrice: number
+  subtotal?: number
+}
+
+interface SaleRequest {
+  items: SaleItem[]
+  paymentMethod: PaymentMethod 
+  paymentNote?: string
+  customerId?: string
+  total?: number
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tenant: string }> } // ← params es una Promise
+  { params }: { params: Promise<{ tenant: string }> }
 ) {
-  const resolvedParams = await params // ← Esperar los parámetros
+  const resolvedParams = await params
   const session = await getServerSession(authOptions)
   
   if (!session || session.user.tenant !== resolvedParams.tenant) {
@@ -16,7 +32,6 @@ export async function GET(
   }
 
   try {
-    // Obtener el tenant para conseguir el ID
     const tenant = await prisma.tenant.findUnique({
       where: {
         slug: session.user.tenant
@@ -33,7 +48,7 @@ export async function GET(
       },
       include: {
         customer: true,
-        user:true,
+        user: true,
         items: {
           include: {
             product: true
@@ -46,7 +61,7 @@ export async function GET(
     })
 
     return NextResponse.json(sales)
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Error fetching sales" },
       { status: 500 }
@@ -68,7 +83,6 @@ export async function POST(
   }
 
   try {
-    // Obtener el tenant
     const tenant = await prisma.tenant.findUnique({
       where: {
         slug: session.user.tenant
@@ -79,7 +93,7 @@ export async function POST(
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body: SaleRequest = await request.json()
     console.log('📦 Sale data received:', body)
 
     // Validar datos requeridos
@@ -90,8 +104,8 @@ export async function POST(
       )
     }
 
-    // Validar método de pago
-    const validPaymentMethods = ["CASH", "CARD", "TRANSFER", "OTHER"]
+    // Validar método de pago usando el enum
+    const validPaymentMethods = Object.values(PaymentMethod)
     if (!body.paymentMethod || !validPaymentMethods.includes(body.paymentMethod)) {
       return NextResponse.json(
         { error: "Valid payment method is required" },
@@ -99,7 +113,7 @@ export async function POST(
       )
     }
 
-    if (body.paymentMethod === "OTHER" && !body.paymentNote) {
+    if (body.paymentMethod === PaymentMethod.OTHER && !body.paymentNote) {
       return NextResponse.json(
         { error: "Payment note is required for other payment methods" },
         { status: 400 }
@@ -107,7 +121,7 @@ export async function POST(
     }
 
     // Calcular total
-    const total = body.total || body.items.reduce((sum: number, item: any) => {
+    const total = body.total || body.items.reduce((sum: number, item: SaleItem) => {
       return sum + (Number(item.unitPrice) * Number(item.quantity))
     }, 0)
 
@@ -119,19 +133,19 @@ export async function POST(
     })
     const saleNumber = `V-${(saleCount + 1).toString().padStart(6, '0')}`
 
-    // Crear la venta
+    // Crear la venta - ahora paymentMethod es del tipo correcto
     const sale = await prisma.sale.create({
       data: {
         total: total,
         status: "COMPLETED",
-        paymentMethod: body.paymentMethod,
-        paymentNote: body.paymentNote, // Solo para "OTHER"
+        paymentMethod: body.paymentMethod, // ← Tipo correcto (PaymentMethod enum)
+        paymentNote: body.paymentNote,
         customerId: body.customerId || null,
         tenantId: tenant.id,
         saleNumber: saleNumber,
         userId: session.user.id,
         items: {
-          create: body.items.map((item: any) => ({
+          create: body.items.map((item: SaleItem) => ({
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
@@ -151,7 +165,7 @@ export async function POST(
 
     console.log('✅ Sale created:', sale)
 
-    // Actualizar stock de productos y verificar que no queden negativos
+    // Actualizar stock de productos
     for (const item of body.items) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId }
@@ -166,7 +180,6 @@ export async function POST(
       
       if (newQuantity < 0) {
         console.warn(`⚠️ Negative stock for product: ${product.name}`)
-        // Puedes decidir si quieres permitir stock negativo o no
       }
 
       await prisma.product.update({

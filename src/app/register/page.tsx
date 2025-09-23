@@ -78,8 +78,8 @@ export default function RegisterPage() {
       // Registro exitoso - redirigir a login
       router.push('/login?message=Cuenta creada exitosamente')
 
-    } catch (error: any) {
-      setError(error.message)
+    } catch (error: unknown) { 
+      setError(error instanceof Error ? error.message : "Error en el registro")
     } finally {
       setLoading(false)
     }

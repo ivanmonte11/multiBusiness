@@ -1,9 +1,32 @@
-// src/lib/auth.ts
+
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
-import { compare } from "bcryptjs" // ← Import añadido
+import { compare } from "bcryptjs"
+
+
+declare module "next-auth" {
+  interface User {
+    tenant: string
+  }
+  
+  interface Session {
+    user: {
+      id: string
+      email: string
+      name: string
+      tenant: string
+    }
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string
+    tenant: string
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -35,7 +58,6 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Comparación con contraseña hasheada ←
         const isPasswordValid = await compare(credentials.password, user.password)
         
         if (!isPasswordValid) {
@@ -58,8 +80,8 @@ export const authOptions: NextAuthOptions = {
           ...session,
           user: {
             ...session.user,
-            id: token.id as string,
-            tenant: token.tenant as string
+            id: token.id,
+            tenant: token.tenant
           }
         }
       }
@@ -67,11 +89,11 @@ export const authOptions: NextAuthOptions = {
     },
     jwt: ({ token, user }) => {
       if (user) {
-        const u = user as unknown as any
+        
         return {
           ...token,
-          id: u.id,
-          tenant: u.tenant
+          id: user.id,
+          tenant: user.tenant
         }
       }
       return token

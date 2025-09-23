@@ -1,7 +1,6 @@
-// src/components/sales/SaleForm.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import {
   PlusIcon,
@@ -62,12 +61,8 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
   const [products, setProducts] = useState<Product[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
-  const [customersLoading, setCustomersLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCustomer, setSelectedCustomer] = useState<string>("")
-  const [transferReference, setTransferReference] = useState("")
-  const [transferBank, setTransferBank] = useState("")
-  const [otherMethod, setOtherMethod] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "TRANSFER" | "OTHER">("CASH")
   const [paymentNote, setPaymentNote] = useState("")
   const [showCustomerModal, setShowCustomerModal] = useState(false)
@@ -77,21 +72,14 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
     phone: ''
   })
 
-  useEffect(() => {
-    if (params.tenant) {
-      fetchProducts()
-      fetchCustomers()
-    }
-  }, [params.tenant])
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setProductsLoading(true)
       const response = await fetch(`/api/${params.tenant}/products`)
       if (response.ok) {
         const data = await response.json()
         console.log('📦 API response:', data)
-
 
         const productsArray = Array.isArray(data) ? data : data.products || []
         console.log('✅ Products array:', productsArray)
@@ -107,11 +95,10 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
     } finally {
       setProductsLoading(false)
     }
-  }
+  }, [params.tenant])
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
-      setCustomersLoading(true)
       const response = await fetch(`/api/${params.tenant}/customers`)
       if (response.ok) {
         const data = await response.json()
@@ -123,20 +110,24 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
     } catch (error) {
       console.error("Error fetching customers:", error)
       setCustomers([])
-    } finally {
-      setCustomersLoading(false)
     }
-  }
+  }, [params.tenant])
 
+  useEffect(() => {
+    if (params.tenant) {
+      fetchProducts()
+      fetchCustomers()
+    }
+  }, [params.tenant, fetchProducts, fetchCustomers])
+
+ 
   const addItem = (product: Product) => {
     const existingItem = items.find(item => item.productId === product.id)
 
     if (existingItem) {
-      // Incrementar cantidad si el producto ya está en la venta
       const newQuantity = existingItem.quantity + 1
       updateItemQuantity(product.id, newQuantity)
     } else {
-      // Agregar nuevo item
       const newItem: SaleItem = {
         productId: product.id,
         productName: product.name,
@@ -181,21 +172,10 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
     const productName = (product.name || '').toLowerCase()
     const productBarCode = (product.barCode || '').toLowerCase()
 
-    console.log('🔍 Buscando:', searchTermLower)
-    console.log('📦 Producto:', productName)
-    console.log('🎯 Coincide:', productName.includes(searchTermLower))
-
     return (
       productName.includes(searchTermLower) ||
       productBarCode.includes(searchTermLower)
     )
-  })
-
-  console.log('DEBUG - ', {
-    searchTerm,
-    totalProducts: products.length,
-    filteredProducts: filteredProducts.length,
-    products: products.map(p => ({ name: p.name, barCode: p.barCode }))
   })
 
   const handleSubmit = () => {
@@ -219,7 +199,6 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
         subtotal: item.subtotal
       })),
       total: getTotal(),
-      // Solo para "OTHER"
       ...(paymentMethod === "OTHER" && {
         paymentNote: paymentNote.trim()
       })
@@ -244,8 +223,7 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
         setSelectedCustomer(customer.id)
         setShowCustomerModal(false)
         setNewCustomer({ name: '', email: '', phone: '' })
-        // Recargar la lista de clientes
-        fetchCustomers()
+        fetchCustomers() // Recargar clientes
       } else {
         alert('Error al crear el cliente')
       }
@@ -457,8 +435,8 @@ export default function SaleForm({ onSubmit, onCancel, loading = false }: SaleFo
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
-                No se encontraron productos para "{searchTerm}"
-              </div>
+  No se encontraron productos para &ldquo;{searchTerm}&rdquo;
+</div>
             ) : (
               filteredProducts.map(product => (
                 <div

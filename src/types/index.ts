@@ -70,3 +70,21 @@ export interface Customer {
   createdAt: Date
   updatedAt: Date
 }
+
+export interface ProductFormData {
+  name: string
+  description: string
+  price: number
+  cost: number
+  quantity: number
+  barCode: string
+  sku: string
+  category: string
+  image: string
+  weight: number
+  dimensions: string
+  lowStockThreshold: number
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}

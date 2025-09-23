@@ -1,9 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import ProductTable from "@/app/components/products/ProductTable"
 import ProductForm from "@/app/components/products/ProductForm"
+import { ProductFormData } from '@/types/product'
+
+
 
 interface Product {
   id: string
@@ -65,11 +68,8 @@ export default function ProductsPage() {
     }
   }, [searchParams])
 
-  useEffect(() => {
-    fetchProducts()
-  }, [params.tenant])
-
-  const fetchProducts = async (page = 1, search = "") => {
+  
+  const fetchProducts = useCallback(async (page = 1, search = "") => {
     try {
       setLoading(true)
       const queryParams = new URLSearchParams({
@@ -91,17 +91,32 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.tenant, pagination.limit]) 
 
-  const handleCreateProduct = async (productData: any) => {
-    try {
-      const response = await fetch(`/api/${params.tenant}/products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(productData)
-      })
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts]) 
+  
+ const handleCreateProduct = async (productData: ProductFormData) => {
+  try {
+    // Agregar valores por defecto para campos que podrían faltar
+    const completeData = {
+      ...productData,
+      barCode: productData.barCode || "",
+      sku: productData.sku || "",
+      image: productData.image || "",
+      weight: productData.weight || 0,
+      dimensions: productData.dimensions || "",
+      isActive: productData.isActive !== undefined ? productData.isActive : true
+    }
+    
+    const response = await fetch(`/api/${params.tenant}/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(completeData)
+    })
 
       if (response.ok) {
         setShowForm(false)
@@ -120,7 +135,8 @@ export default function ProductsPage() {
     }
   }
 
-  const handleEditProduct = async (productId: string, productData: any) => {
+ 
+  const handleEditProduct = async (productId: string, productData: ProductFormData) => {
     try {
       const response = await fetch(`/api/${params.tenant}/products/${productId}`, {
         method: 'PUT',

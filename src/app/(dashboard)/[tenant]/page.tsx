@@ -9,7 +9,6 @@ import {
   UsersIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
-  ExclamationTriangleIcon,
   CurrencyDollarIcon
 } from "@heroicons/react/24/outline"
 import DashboardChart from "@/app/components/dashboard/DashboardChart"
@@ -59,11 +58,10 @@ export default async function DashboardPage({
     redirect("/login")
   }
 
-  // Calcular métricas REALES con datos de ventas y costos
   const [
     lowStockProducts,
-    totalInventoryValue,
-    recentProducts,
+    , 
+    , 
     totalSales,
     monthlySalesData,
     recentSales
@@ -76,7 +74,7 @@ export default async function DashboardPage({
       }
     }),
 
-    // Valor total del inventario (a costo)
+    // ❌ ELIMINADO: Valor total del inventario (no se usa)
     prisma.product.aggregate({
       where: { tenantId: tenant.id },
       _sum: { 
@@ -84,7 +82,7 @@ export default async function DashboardPage({
       }
     }),
 
-    // Productos recientes
+    // ❌ ELIMINADO: Productos recientes (no se usa)
     prisma.product.findMany({
       where: { tenantId: tenant.id },
       take: 5,
@@ -220,13 +218,9 @@ export default async function DashboardPage({
     ? ((lastTwoMonths[1].ventas - lastTwoMonths[0].ventas) / lastTwoMonths[0].ventas) * 100
     : 0
 
-  const profitTrend = lastTwoMonths.length === 2 
-    ? ((lastTwoMonths[1].ganancia - lastTwoMonths[0].ganancia) / lastTwoMonths[0].ganancia) * 100
-    : 0
 
   const totalProducts = tenant._count.products
-  const totalUsers = tenant._count.users
-  const totalCustomers = tenant._count.customers
+ 
   const totalSalesCount = totalSales._count.id
 
   const stats = [

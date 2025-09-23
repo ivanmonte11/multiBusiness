@@ -49,26 +49,26 @@ export async function POST(request: NextRequest) {
 
     // Crear la devolución
     const refund = await prisma.$transaction(async (tx) => {
-      // 1. Crear registro de devolución
+      //  Crear registro de devolución
       const refund = await tx.refund.create({
         data: {
           refundNumber,
           saleId: saleId,
-          total: sale.total,
+          total: Number(sale.total), 
           status: 'COMPLETED',
-          tenantId: tenant.id, // Usar el ID real del tenant
+          tenantId: tenant.id,
           items: {
             create: sale.items.map(item => ({
               productId: item.productId,
               quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              subtotal: item.subtotal
+              unitPrice: Number(item.unitPrice), 
+              subtotal: Number(item.subtotal)    
             }))
           }
         }
       })
 
-      // 2. Revertir stock
+      //  Revertir stock
       for (const item of sale.items) {
         await tx.product.update({
           where: { id: item.productId },
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // 3. Marcar venta como devuelta
+      //  Marcar venta como devuelta
       await tx.sale.update({
         where: { id: saleId },
         data: { status: 'REFUNDED' }

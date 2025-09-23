@@ -1,4 +1,3 @@
-// src/app/(dashboard)/[tenant]/sales/new/page.tsx
 "use client"
 
 import { useState } from "react"
@@ -6,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import SaleForm from "@/app/components/sales/SaleForm"
 
 interface SaleData {
-  customerId?: string
+  customerId: string | null
   paymentMethod: string
   items: Array<{
     productId: string

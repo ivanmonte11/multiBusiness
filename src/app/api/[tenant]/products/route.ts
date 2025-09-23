@@ -1,14 +1,26 @@
-// src/app/api/[tenant]/products/route.ts
+
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+// Interfaz para el where clause
+interface ProductWhere {
+  tenantId: string
+  isActive: boolean
+  OR?: Array<{
+    name?: { contains: string; mode: 'insensitive' }
+    description?: { contains: string; mode: 'insensitive' }
+    barCode?: { contains: string }
+    sku?: { contains: string }
+  }>
+  category?: string
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tenant: string }> } // ← params es Promise
+  { params }: { params: Promise<{ tenant: string }> }
 ) {
-  // Await de los params
   const resolvedParams = await params
   const session = await getServerSession(authOptions)
   
@@ -17,7 +29,6 @@ export async function GET(
   }
 
   try {
-    // Obtener el tenant para conseguir el ID
     const tenant = await prisma.tenant.findUnique({
       where: { slug: session.user.tenant }
     })
@@ -26,7 +37,6 @@ export async function GET(
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 })
     }
 
-    // ... el resto del código igual ...
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const category = searchParams.get('category')
@@ -34,16 +44,16 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    // Construir where clause
-    const where: any = {
+    // ✅ CORREGIDO: Usar interfaz tipo-safe
+    const where: ProductWhere = {
       tenantId: tenant.id,
       isActive: true
     }
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
         { barCode: { contains: search } },
         { sku: { contains: search } }
       ]
@@ -90,9 +100,8 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ tenant: string }> } // ← params es Promise
+  { params }: { params: Promise<{ tenant: string }> }
 ) {
-  // Await de los params
   const resolvedParams = await params
   const session = await getServerSession(authOptions)
   
@@ -132,7 +141,6 @@ export async function POST(
   }
 }
 
-// PUT - Actualizar producto
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ tenant: string }> }
@@ -160,7 +168,6 @@ export async function PUT(
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
 
-    // Verificar que el producto pertenezca al tenant
     const existingProduct = await prisma.product.findFirst({
       where: { id, tenantId: tenant.id }
     })
@@ -190,7 +197,6 @@ export async function PUT(
   }
 }
 
-// DELETE - Eliminar producto
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ tenant: string }> }
@@ -218,7 +224,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
 
-    // Verificar que el producto pertenezca al tenant
     const existingProduct = await prisma.product.findFirst({
       where: { id, tenantId: tenant.id }
     })
@@ -227,12 +232,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
-    
-    
-     await prisma.product.update({
-     where: { id },
-     data: { isActive: false }
-     })
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false }
+    })
 
     return NextResponse.json({ message: "Product deleted successfully" })
   } catch (error) {
@@ -244,11 +247,55 @@ export async function DELETE(
   }
 }
 
-// PATCH - Actualización parcial (opcional)
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ tenant: string }> }
 ) {
-  // Similar al PUT pero para actualizaciones parciales
-  // Útil para updates específicos como stock
+  const resolvedParams = await params
+  const session = await getServerSession(authOptions)
+  
+  if (!session || session.user.tenant !== resolvedParams.tenant) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: session.user.tenant }
+    })
+
+    if (!tenant) {
+      return NextResponse.json({ error: "Tenant not found" }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const { id, quantity } = body
+
+    if (!id || quantity === undefined) {
+      return NextResponse.json({ error: "Product ID and quantity are required" }, { status: 400 })
+    }
+
+    const existingProduct = await prisma.product.findFirst({
+      where: { id, tenantId: tenant.id }
+    })
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        quantity: parseInt(quantity)
+      }
+    })
+
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('Error updating product stock:', error)
+    return NextResponse.json(
+      { error: "Error updating product stock" },
+      { status: 500 }
+    )
+  }
 }

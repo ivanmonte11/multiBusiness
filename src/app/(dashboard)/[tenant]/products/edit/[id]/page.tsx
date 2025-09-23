@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import ProductForm from "@/app/components/products/ProductForm"
-import { Product } from "@/types"
+import { Product, ProductFormData } from "@/types"
 
 export default function EditProductPage() {
   const params = useParams()
@@ -22,7 +22,7 @@ export default function EditProductPage() {
         } else {
           setError("Producto no encontrado")
         }
-      } catch (error) {
+      } catch {
         setError("Error al cargar el producto")
       } finally {
         setLoading(false)
@@ -32,7 +32,8 @@ export default function EditProductPage() {
     fetchProduct()
   }, [params.tenant, params.id])
 
-  const handleSubmit = async (formData: any) => {
+ 
+  const handleSubmit = async (formData: ProductFormData) => {
     try {
       const response = await fetch(`/api/${params.tenant}/products/${params.id}`, {
         method: "PUT",
@@ -47,7 +48,7 @@ export default function EditProductPage() {
       } else {
         setError("Error al actualizar el producto")
       }
-    } catch (error) {
+    } catch { 
       setError("Error de conexión")
     }
   }
@@ -67,7 +68,7 @@ export default function EditProductPage() {
       } else {
         setError("Error al eliminar el producto")
       }
-    } catch (error) {
+    } catch { 
       setError("Error de conexión")
     }
   }
@@ -80,37 +81,28 @@ export default function EditProductPage() {
     )
   }
 
-  if (error) {
+  if (error && !product) {
     return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        {error}
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
       </div>
     )
   }
 
   if (!product) {
     return (
-      <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-        Producto no encontrado
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+          Producto no encontrado
+        </div>
       </div>
     )
   }
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Editar Producto</h1>
-          <p className="text-gray-600">Modifica los datos del producto</p>
-        </div>
-        <button
-          onClick={handleDelete}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-        >
-          Eliminar Producto
-        </button>
-      </div>
-
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
           {error}
@@ -120,9 +112,23 @@ export default function EditProductPage() {
       <div className="bg-white rounded-lg shadow p-6">
         <ProductForm 
           onSubmit={handleSubmit} 
-          initialData={product}
-          submitText="Actualizar Producto"
-          isEdit={true} 
+          onDelete={handleDelete}
+          initialData={{
+            name: product.name,
+            description: product.description || "",
+            price: Number(product.price),
+            quantity: Number(product.quantity),
+            category: product.category,
+            barCode: product.barCode || "",
+            sku: product.sku || "",
+            cost: 0,
+            image: "", 
+            weight: 0,
+            dimensions: "",
+            lowStockThreshold: 5,
+            isActive: true
+          }}
+          isEdit={true}
         />
       </div>
     </div>

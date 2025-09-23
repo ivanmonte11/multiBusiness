@@ -1,13 +1,13 @@
-// src/app/login/page.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signIn, getSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Navbar from "@/app/components/layout/Navbar"
 import Link from "next/link"
 
-export default function LoginPage() {
+// Componente interno que usa useSearchParams
+function LoginContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -17,14 +17,14 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Verificar si ya está autenticado
+    // Verifica si ya está autenticado
     getSession().then(session => {
       if (session) {
         router.push(`/${session.user.tenant}`)
       }
     })
 
-    // Mostrar mensaje de éxito si viene por query params
+    
     const message = searchParams.get('message')
     if (message) {
       setSuccessMessage(message)
@@ -55,7 +55,7 @@ export default function LoginPage() {
           router.push("/")
         }
       }
-    } catch (error) {
+    } catch {
       setError("Error del servidor")
     } finally {
       setLoading(false)
@@ -130,5 +130,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal con Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

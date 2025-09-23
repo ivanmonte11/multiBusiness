@@ -33,9 +33,6 @@ export default function CustomersPage() {
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchCustomers()
-  }, [params.tenant])
-
   const fetchCustomers = async () => {
     try {
       const response = await fetch(`/api/${params.tenant}/customers`)
@@ -49,6 +46,8 @@ export default function CustomersPage() {
       setLoading(false)
     }
   }
+    fetchCustomers()
+}, [params.tenant])
 
   const handleDeleteCustomer = async (customerId: string) => {
     if (!confirm("¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.")) {

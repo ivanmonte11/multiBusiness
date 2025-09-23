@@ -61,7 +61,7 @@ export default function SaleDetailPage() {
     name: String(params.tenant)
   })
   const [isProcessing, setIsProcessing] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+ const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning', text: string } | null>(null)
 
   useEffect(() => {
     if (params.id && params.tenant) {
@@ -191,7 +191,7 @@ export default function SaleDetailPage() {
     setMessage(null)
 
     try {
-      // ¡URL CORREGIDA! Elimina "/:tenant"
+      
       const response = await fetch(`/api/${params.tenant}/sales/cancel`, {
         method: 'POST',
         headers: {

@@ -3,6 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { ProductFormData } from '@/types/product'
+
 
 interface Product {
   id: string
@@ -16,8 +18,20 @@ interface Product {
   createdAt: string
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
+
 interface ProductTableProps {
   products: Product[]
+  categories: string[] 
+  pagination: Pagination 
+  onRefresh: (page?: number, search?: string) => Promise<void> 
+  onEdit: (productId: string, productData: ProductFormData) => Promise<void>  
+  onDelete: (productId: string, productName: string) => Promise<void> 
 }
 
 export default function ProductTable({ products }: ProductTableProps) {
