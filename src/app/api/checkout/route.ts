@@ -7,7 +7,7 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
   options: { timeout: 5000 }
 })
-//  Interface para preferenceData
+
 interface PreferenceData {
   items: Array<{
     id: string
@@ -30,12 +30,17 @@ interface PreferenceData {
     planInternalId: string
     type: string
   }
-  auto_return?: 'approved'
+  auto_return: 'approved'
 }
 
-//  CORREGIDO: Función para validar PlanType sin usar 'any'
+// Interface para el error de MercadoPago
+interface MercadoPagoError {
+  status?: number
+  error?: string
+  message?: string
+}
+
 function toPlanType(planId: string): 'TRIAL' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' {
-  //  Usar switch statement en lugar de includes con any
   switch (planId) {
     case 'TRIAL':
       return 'TRIAL'
@@ -48,18 +53,6 @@ function toPlanType(planId: string): 'TRIAL' | 'BASIC' | 'PROFESSIONAL' | 'ENTER
     default:
       throw new Error(`Invalid plan type: ${planId}`)
   }
-}
-
-//  Alternativa con type guard (si prefieres este enfoque)
-function isValidPlanType(planId: string): planId is 'TRIAL' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' {
-  return ['TRIAL', 'BASIC', 'PROFESSIONAL', 'ENTERPRISE'].includes(planId)
-}
-
-function toPlanTypeWithGuard(planId: string): 'TRIAL' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' {
-  if (isValidPlanType(planId)) {
-    return planId
-  }
-  throw new Error(`Invalid plan type: ${planId}`)
 }
 
 export async function POST(request: NextRequest) {
@@ -80,7 +73,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar por slug
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    if (!baseUrl) {
+      console.error('NEXT_PUBLIC_BASE_URL no está configurado')
+      return NextResponse.json(
+        { error: 'Error de configuración del servidor' },
+        { status: 500 }
+      )
+    }
+
     const tenant = await prisma.tenant.findUnique({
       where: { slug: tenantId },
       include: { subscription: true }
@@ -102,9 +103,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-
-    //  Usar interface en lugar de any
     const preferenceData: PreferenceData = {
       items: [{
         id: plan.id,
@@ -126,7 +124,8 @@ export async function POST(request: NextRequest) {
         planId: planId,
         planInternalId: plan.id,
         type: 'subscription'
-      }
+      },
+      auto_return: 'approved'
     }
 
     let preference
@@ -135,19 +134,19 @@ export async function POST(request: NextRequest) {
       preference = await new Preference(client).create({
         body: preferenceData
       })
-    } catch (error: unknown) { //  CORREGIDO: Remover variable no usada 'firstError'
-      console.log('First attempt failed, trying with auto_return...')
+    } catch (error: unknown) {
+      console.error('Error creando preferencia:', error)
       
-      // Si falla, intentar CON auto_return
-      preferenceData.auto_return = 'approved'
+      // Si falla, intentar SIN auto_return como fallback
+      const { auto_return, ...preferenceDataWithoutAutoReturn } = preferenceData
+      
       preference = await new Preference(client).create({
-        body: preferenceData
+        body: preferenceDataWithoutAutoReturn
       })
     }
 
-    const checkoutUrl = preference.init_point
+    const checkoutUrl = preference.init_point || preference.sandbox_init_point
 
-    //  Usar la función corregida sin 'any'
     await prisma.subscription.upsert({
       where: { tenantId: tenant.id },
       update: { 
@@ -174,18 +173,17 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Error en checkout:', error)
     
-    if (error instanceof Error && 'status' in error && 'error' in error) {
-      const typedError = error as { status?: number; error?: string }
-      if (typedError.status === 400 && typedError.error === 'invalid_auto_return') {
-        return NextResponse.json(
-          { error: 'Error de configuración con las URLs de retorno' },
-          { status: 500 }
-        )
-      }
+    // Manejo específico de errores de MercadoPago
+    const mercadoPagoError = error as MercadoPagoError
+    if (mercadoPagoError.status === 400) {
+      return NextResponse.json(
+        { error: 'Error en la configuración del pago' },
+        { status: 400 }
+      )
     }
     
     return NextResponse.json(
-      { error: 'Error al procesar el pago' },
+      { error: 'Error interno al procesar el pago' },
       { status: 500 }
     )
   }
