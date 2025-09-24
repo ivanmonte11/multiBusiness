@@ -2,17 +2,21 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import {
-  ChartBarIcon,
-  ShoppingCartIcon,
-  CubeIcon,
-  UsersIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  CurrencyDollarIcon
-} from "@heroicons/react/24/outline"
 import DashboardChart from "@/app/components/dashboard/DashboardChart"
 import Link from 'next/link'
+import { 
+  ShoppingCart, 
+  Package, 
+  Users, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign,
+  BarChart3,
+  Clock,
+  CheckCircle2,
+  Plus,
+  FileText
+} from 'lucide-react'
 
 interface MonthlyData {
   ventas: number;
@@ -40,7 +44,7 @@ export default async function DashboardPage({
     redirect("/login")
   }
 
-  // Obtener el tenant con estadísticas
+  // Obtener el tenant con estadísticas Y datos de subscription
   const tenant = await prisma.tenant.findUnique({
     where: { slug: resolvedParams.tenant },
     include: {
@@ -50,7 +54,8 @@ export default async function DashboardPage({
           users: true,
           customers: true
         }
-      }
+      },
+      subscription: true
     }
   })
 
@@ -58,10 +63,29 @@ export default async function DashboardPage({
     redirect("/login")
   }
 
+  //  CORRECCIÓN: Lógica mejorada para detectar trial
+  const now = new Date();
+  const trialEndsAt = tenant.subscription?.currentPeriodEnd;
+  const isInTrialPeriod = trialEndsAt && new Date(trialEndsAt) > now;
+  const daysLeft = trialEndsAt 
+    ? Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  const shouldShowTrialAlert = isInTrialPeriod && daysLeft > 0;
+
+  // Debug: Ver qué datos tenemos
+  console.log('🔍 Debug Trial Info:', {
+    tenantId: tenant.id,
+    subscription: tenant.subscription,
+    trialEndsAt: trialEndsAt,
+    now: now,
+    isInTrialPeriod: isInTrialPeriod,
+    daysLeft: daysLeft,
+    shouldShowTrialAlert: shouldShowTrialAlert
+  });
+
   const [
     lowStockProducts,
-    , 
-    , 
     totalSales,
     monthlySalesData,
     recentSales
@@ -71,30 +95,6 @@ export default async function DashboardPage({
       where: {
         tenantId: tenant.id,
         quantity: { lt: 10 }
-      }
-    }),
-
-    // ❌ ELIMINADO: Valor total del inventario (no se usa)
-    prisma.product.aggregate({
-      where: { tenantId: tenant.id },
-      _sum: { 
-        cost: true
-      }
-    }),
-
-    // ❌ ELIMINADO: Productos recientes (no se usa)
-    prisma.product.findMany({
-      where: { tenantId: tenant.id },
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        cost: true,
-        quantity: true,
-        category: true,
-        createdAt: true
       }
     }),
 
@@ -218,84 +218,180 @@ export default async function DashboardPage({
     ? ((lastTwoMonths[1].ventas - lastTwoMonths[0].ventas) / lastTwoMonths[0].ventas) * 100
     : 0
 
-
   const totalProducts = tenant._count.products
- 
   const totalSalesCount = totalSales._count.id
-
-  const stats = [
-    {
-      name: 'Ventas totales',
-      value: totalSalesCount,
-      icon: ShoppingCartIcon,
-      change: `${salesTrend >= 0 ? '+' : ''}${salesTrend.toFixed(1)}%`,
-      changeType: salesTrend >= 0 ? 'increase' : 'decrease',
-      color: 'bg-green-500',
-      description: 'Completadas'
-    },
-    {
-      name: 'Ingreso Bruto',
-      value: `$${grossRevenue.toLocaleString('es-AR')}`,
-      icon: CurrencyDollarIcon,
-      change: `${salesTrend >= 0 ? '+' : ''}${salesTrend.toFixed(1)}%`,
-      changeType: salesTrend >= 0 ? 'increase' : 'decrease',
-      color: 'bg-blue-500',
-      description: 'Total de ventas'
-    },
-    {
-      name: 'Ganancia Neta',
-      value: `$${netProfit.toLocaleString('es-AR')}`,
-      icon: CurrencyDollarIcon,
-      change: `${profitMargin.toFixed(1)}% margen`,
-      changeType: netProfit >= 0 ? 'increase' : 'decrease',
-      color: 'bg-green-500',
-      description: 'Después de costos'
-    },
-    {
-      name: 'Productos',
-      value: totalProducts,
-      icon: CubeIcon,
-      change: `${lowStockProducts} bajo stock`,
-      changeType: lowStockProducts > 0 ? 'decrease' : 'increase',
-      color: 'bg-purple-500',
-      description: 'En inventario'
-    }
-  ]
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Bienvenido al panel de control de {tenant.name}</p>
-      </div>
-
-      {/* Estadísticas MEJORADAS con datos reales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border-l-4 border-gray-200 hover:border-opacity-100 hover:border-indigo-400">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600 mb-1">{stat.name}</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">{stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.description}</p>
-                <div className={`flex items-center mt-2 text-sm ${
-                  stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.changeType === 'increase' ? (
-                    <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
-                  ) : (
-                    <ArrowTrendingDownIcon className="h-4 w-4 mr-1" />
-                  )}
-                  {stat.change}
-                </div>
+      {/*  ALERTA DE TRIAL */}
+      {shouldShowTrialAlert && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Clock className="h-5 w-5 text-blue-500" />
               </div>
-              <div className={`p-3 rounded-full ${stat.color} bg-opacity-10`}>
-                <stat.icon className={`h-6 w-6 ${stat.color.replace('bg-', 'text-')}`} />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-blue-800">
+                  <strong>Prueba Gratuita Activa</strong> - Tienes <span className="font-bold text-blue-900">{daysLeft} días</span> restantes
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Prueba todas las funciones premium antes de elegir tu plan definitivo
+                </p>
               </div>
             </div>
+            <Link 
+              href={`/${resolvedParams.tenant}/billing`}
+              className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors flex items-center"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              Elegir Plan
+            </Link>
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* Header con info del plan */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Bienvenido al panel de control de {tenant.name}</p>
+            
+            {/* Info del plan */}
+            <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+              <span>
+                Estado: <span className="capitalize font-medium text-gray-700">
+                  {shouldShowTrialAlert ? 'Prueba gratuita' : (tenant.subscription?.status?.toLowerCase() || 'activo')}
+                </span>
+              </span>
+              {shouldShowTrialAlert && (
+                <span>
+                  • Expira: <span className="font-medium text-gray-700">
+                    {new Date(trialEndsAt!).toLocaleDateString('es-AR')}
+                  </span>
+                </span>
+              )}
+              {tenant.subscription?.plan && (
+                <span>
+                  • Plan: <span className="font-medium text-gray-700 capitalize">
+                    {tenant.subscription.plan.toLowerCase()}
+                  </span>
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Badge de estado */}
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+            shouldShowTrialAlert 
+              ? 'bg-blue-100 text-blue-800' 
+              : tenant.subscription?.status === 'ACTIVE' 
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
+          }`}>
+            {shouldShowTrialAlert ? 'Prueba Gratuita' : (tenant.subscription?.status?.toLowerCase() || 'activo')}
+          </span>
+        </div>
+      </div>
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Ventas totales */}
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border-l-4 border-gray-200 hover:border-opacity-100 hover:border-indigo-400">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 mb-1">Ventas totales</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">{totalSalesCount}</p>
+              <p className="text-xs text-gray-500">Completadas</p>
+              <div className={`flex items-center mt-2 text-sm ${
+                salesTrend >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {salesTrend >= 0 ? (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                )}
+                {salesTrend >= 0 ? '+' : ''}{salesTrend.toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-3 rounded-full bg-green-500 bg-opacity-10">
+              <ShoppingCart className="h-6 w-6 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Ingreso Bruto */}
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border-l-4 border-gray-200 hover:border-opacity-100 hover:border-indigo-400">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 mb-1">Ingreso Bruto</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">${grossRevenue.toLocaleString('es-AR')}</p>
+              <p className="text-xs text-gray-500">Total de ventas</p>
+              <div className={`flex items-center mt-2 text-sm ${
+                salesTrend >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {salesTrend >= 0 ? (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                )}
+                {salesTrend >= 0 ? '+' : ''}{salesTrend.toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-3 rounded-full bg-blue-500 bg-opacity-10">
+              <DollarSign className="h-6 w-6 text-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Ganancia Neta */}
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border-l-4 border-gray-200 hover:border-opacity-100 hover:border-indigo-400">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 mb-1">Ganancia Neta</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">${netProfit.toLocaleString('es-AR')}</p>
+              <p className="text-xs text-gray-500">Después de costos</p>
+              <div className={`flex items-center mt-2 text-sm ${
+                netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {netProfit >= 0 ? (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                )}
+                {profitMargin.toFixed(1)}% margen
+              </div>
+            </div>
+            <div className="p-3 rounded-full bg-green-500 bg-opacity-10">
+              <DollarSign className="h-6 w-6 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Productos */}
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border-l-4 border-gray-200 hover:border-opacity-100 hover:border-indigo-400">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 mb-1">Productos</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">{totalProducts}</p>
+              <p className="text-xs text-gray-500">En inventario</p>
+              <div className={`flex items-center mt-2 text-sm ${
+                lowStockProducts > 0 ? 'text-red-600' : 'text-green-600'
+              }`}>
+                {lowStockProducts > 0 ? (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                )}
+                {lowStockProducts} bajo stock
+              </div>
+            </div>
+            <div className="p-3 rounded-full bg-purple-500 bg-opacity-10">
+              <Package className="h-6 w-6 text-purple-500" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gráfico y Ventas recientes */}
@@ -303,7 +399,10 @@ export default async function DashboardPage({
         {/* Gráfico con datos reales */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Rendimiento mensual</h2>
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Rendimiento mensual
+            </h2>
             <span className={`text-sm px-2 py-1 rounded-full ${
               salesTrend >= 0 ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
             }`}>
@@ -316,7 +415,10 @@ export default async function DashboardPage({
         {/* Ventas recientes */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Ventas recientes</h2>
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              Ventas recientes
+            </h2>
             <span className="text-sm text-gray-500">{recentSales.length} de {totalSalesCount}</span>
           </div>
           <div className="space-y-3">
@@ -351,7 +453,7 @@ export default async function DashboardPage({
               })
             ) : (
               <div className="text-center py-8">
-                <ShoppingCartIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                 <p className="text-gray-500">No hay ventas registradas</p>
                 <p className="text-sm text-gray-400">Realiza tu primera venta para comenzar</p>
               </div>
@@ -360,55 +462,54 @@ export default async function DashboardPage({
         </div>
       </div>
 
- {/* Quick Actions */}
-<div className="bg-white rounded-xl shadow-lg p-6">
-  <h2 className="text-lg font-semibold text-gray-900 mb-6">Acciones rápidas</h2>
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {/* Nuevo Producto */}
-    <Link 
-      href={`/${resolvedParams.tenant}/products`}
-      className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 group"
-    >
-      <div className="p-3 bg-blue-100 rounded-full mb-3 group-hover:bg-blue-200">
-        <CubeIcon className="h-6 w-6 text-blue-600" />
-      </div>
-      <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-700">Nuevo producto</span>
-    </Link>
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+          <FileText className="h-5 w-5 mr-2" />
+          Acciones rápidas
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link 
+            href={`/${resolvedParams.tenant}/products`}
+            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 group"
+          >
+            <div className="p-3 bg-blue-100 rounded-full mb-3 group-hover:bg-blue-200">
+              <Package className="h-6 w-6 text-blue-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-700">Productos</span>
+          </Link>
 
-    {/* Registrar Venta */}
-    <Link 
-      href={`/${resolvedParams.tenant}/sales/new`}
-      className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all duration-200 group"
-    >
-      <div className="p-3 bg-green-100 rounded-full mb-3 group-hover:bg-green-200">
-        <ShoppingCartIcon className="h-6 w-6 text-green-600" />
-      </div>
-      <span className="text-sm font-medium text-gray-700 group-hover:text-green-700">Registrar venta</span>
-    </Link>
+          <Link 
+            href={`/${resolvedParams.tenant}/sales/new`}
+            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all duration-200 group"
+          >
+            <div className="p-3 bg-green-100 rounded-full mb-3 group-hover:bg-green-200">
+              <Plus className="h-6 w-6 text-green-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-green-700">Nueva Venta</span>
+          </Link>
 
-    {/* Gestionar Clientes */}
-    <Link 
-      href={`/${resolvedParams.tenant}/customers`}
-      className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group"
-    >
-      <div className="p-3 bg-purple-100 rounded-full mb-3 group-hover:bg-purple-200">
-        <UsersIcon className="h-6 w-6 text-purple-600" />
-      </div>
-      <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700">Gestionar clientes</span>
-    </Link>
+          <Link 
+            href={`/${resolvedParams.tenant}/customers`}
+            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group"
+          >
+            <div className="p-3 bg-purple-100 rounded-full mb-3 group-hover:bg-purple-200">
+              <Users className="h-6 w-6 text-purple-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700">Clientes</span>
+          </Link>
 
-    {/* Ver Reportes */}
-    <Link 
-      href={`/${resolvedParams.tenant}/reports`}
-      className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group"
-    >
-      <div className="p-3 bg-orange-100 rounded-full mb-3 group-hover:bg-orange-200">
-        <ChartBarIcon className="h-6 w-6 text-orange-600" />
+          <Link 
+            href={`/${resolvedParams.tenant}/billing`}
+            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group"
+          >
+            <div className="p-3 bg-orange-100 rounded-full mb-3 group-hover:bg-orange-200">
+              <DollarSign className="h-6 w-6 text-orange-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-orange-700">Facturación</span>
+          </Link>
+        </div>
       </div>
-      <span className="text-sm font-medium text-gray-700 group-hover:text-orange-700">Ver reportes</span>
-    </Link>
-  </div>
-</div>
     </div>
   )
 }

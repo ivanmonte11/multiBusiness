@@ -26,8 +26,52 @@ model Tenant {
   sales     Sale[] 
   customers Customer[]
   refunds   Refund[]
+
+   planType      PlanType    @default(TRIAL)
+  status        TenantStatus @default(ACTIVE)
+  trialEndsAt   DateTime?   // Fecha fin trial (14 días)
+  subscription  Subscription?
   
   @@map("tenants")
+  
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  plan         PlanType
+  status       SubscriptionStatus @default(ACTIVE)
+  mpSubscriptionId String?  // ID de Mercado Pago
+  mpPreferenceId   String?  // ID de preferencia MP
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  price        Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("subscriptions")
+}
+
+// ENUMS NUEVOS
+enum PlanType {
+  TRIAL
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PENDING
 }
 
 // Modelos para NextAuth
@@ -213,4 +257,3 @@ enum PaymentMethod {
   OTHER
 }
 
-// Agregar más modelos después (categorías, proveedores, etc.)

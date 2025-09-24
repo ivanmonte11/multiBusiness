@@ -11,10 +11,11 @@ import {
   UsersIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
-  XMarkIcon
+  XMarkIcon,
+  CreditCardIcon,
+  QrCodeIcon // ← Agregado aquí en lugar de import separado
 } from "@heroicons/react/24/outline"
 import { signOut } from "next-auth/react"
-import { QrCodeIcon } from "@heroicons/react/24/outline"
 
 interface SidebarProps {
   tenant: string
@@ -22,18 +23,21 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/[tenant]", icon: HomeIcon },
-  { name: "Productos", href: "/[tenant]/products", icon: CubeIcon },
-  { name: "Escanear", href: "/[tenant]/scan", icon: QrCodeIcon},
-  { name: "Ventas", href: "/[tenant]/sales", icon: ShoppingCartIcon },
-  { name: "Reportes", href: "/[tenant]/reports", icon: ChartBarIcon },
-  { name: "Clientes", href: "/[tenant]/customers", icon: UsersIcon },
-  { name: "Configuración", href: "/[tenant]/settings", icon: Cog6ToothIcon },
+// MOVER navigation DENTRO del componente para usar pathname
+const getNavigation = (tenant: string, pathname: string | null) => [
+  { name: "Dashboard", href: `/${tenant}`, icon: HomeIcon, current: pathname === `/${tenant}` },
+  { name: "Productos", href: `/${tenant}/products`, icon: CubeIcon, current: pathname?.includes('/products') },
+  { name: "Escanear", href: `/${tenant}/scan`, icon: QrCodeIcon, current: pathname?.includes('/scan') },
+  { name: "Ventas", href: `/${tenant}/sales`, icon: ShoppingCartIcon, current: pathname?.includes('/sales') },
+  { name: "Reportes", href: `/${tenant}/reports`, icon: ChartBarIcon, current: pathname?.includes('/reports') },
+  { name: "Clientes", href: `/${tenant}/customers`, icon: UsersIcon, current: pathname?.includes('/customers') },
+  { name: 'Facturación', href: `/${tenant}/billing`, icon: CreditCardIcon, current: pathname?.includes('/billing') }, // ← CORREGIDO
+  { name: "Configuración", href: `/${tenant}/settings`, icon: Cog6ToothIcon, current: pathname?.includes('/settings') },
 ]
 
 export default function Sidebar({ tenant, isMobile = false, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const navigation = getNavigation(tenant, pathname) // ← Navigation dentro del componente
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/login" })
@@ -83,14 +87,12 @@ export default function Sidebar({ tenant, isMobile = false, onClose }: SidebarPr
         <div className="mt-8 flex-grow flex flex-col">
           <nav className="flex-1 px-2 pb-4 space-y-1">
             {navigation.map((item) => {
-              const href = item.href.replace("[tenant]", tenant)
-              const isActive = pathname === href || 
-                              (pathname?.startsWith(href) && href !== `/${tenant}`)
+              const isActive = item.current
               
               return (
                 <Link
                   key={item.name}
-                  href={href}
+                  href={item.href}
                   onClick={isMobile ? onClose : undefined}
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                     isActive

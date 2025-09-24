@@ -41,7 +41,7 @@ export default function Navbar() {
               <CubeIcon className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-xl text-gray-900 dark:text-white">
-              MultiRubro
+              Prender
             </span>
           </Link>
 

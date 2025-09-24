@@ -1,4 +1,3 @@
-// app/(dashboard)/[tenant]/layout.tsx
 'use client'
 
 import { useState } from 'react'
@@ -6,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { useParams, useRouter } from "next/navigation"
 import Sidebar from "@/app/components/dashboard/SideBar"
 import Header from "@/app/components/dashboard/Header"
+import { CreditCardIcon } from '@heroicons/react/24/outline'
 
 export default function DashboardLayout({
   children,

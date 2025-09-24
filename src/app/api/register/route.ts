@@ -1,3 +1,4 @@
+// app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { hash } from "bcryptjs"
@@ -40,16 +41,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear el tenant primero
+    // CREAR TENANT CON TRIAL DE 14 DÍAS
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 días
+    
     const tenant = await prisma.tenant.create({
       data: {
         name: tenantName,
         slug: tenantSlug,
-        category: tenantCategory
+        category: tenantCategory,
+        planType: 'TRIAL',
+        status: 'ACTIVE',
+        trialEndsAt: trialEndsAt
       }
     })
 
-    // Hashear la contraseña (¡IMPORTANTE!)
+    // Hashear la contraseña
     const hashedPassword = await hash(password, 12)
 
     // Crear el usuario
@@ -62,8 +68,20 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // CREAR SUBSCRIPCIÓN INICIAL (TRIAL)
+    await prisma.subscription.create({
+      data: {
+        tenantId: tenant.id,
+        plan: 'TRIAL',
+        status: 'ACTIVE',
+        price: 0,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: trialEndsAt
+      }
+    })
+
     return NextResponse.json({
-      message: "Usuario creado exitosamente",
+      message: "Usuario creado exitosamente. Trial de 14 días activado.",
       user: {
         id: user.id,
         email: user.email,
@@ -72,8 +90,10 @@ export async function POST(request: NextRequest) {
       tenant: {
         id: tenant.id,
         name: tenant.name,
-        slug: tenant.slug
-      }
+        slug: tenant.slug,
+        trialEndsAt: tenant.trialEndsAt
+      },
+      trialEndsAt: trialEndsAt
     })
 
   } catch (error) {
